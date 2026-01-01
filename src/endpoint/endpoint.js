@@ -119,11 +119,21 @@ export default class RTCEndpoint extends Event
                     anwser.type = 'answer';
                     debug.log(this.TAG,'answer:',ret.sdp);
 
-                    this.pc.setRemoteDescription(anwser).then(()=>{
-                        debug.log(this.TAG,'set remote sucess');
-                    }).catch(e=>{
-                        debug.error(this.TAG,e);
-                    });
+                    // Guard against race condition: PeerConnection may be closed during HTTP request
+                    if (!this.pc || this.pc.connectionState === 'closed') {
+                        debug.log(this.TAG, 'PeerConnection already closed, skipping setRemoteDescription');
+                        return;
+                    }
+
+                    try {
+                        this.pc.setRemoteDescription(anwser).then(()=>{
+                            debug.log(this.TAG,'set remote sucess');
+                        }).catch(e=>{
+                            debug.error(this.TAG,e);
+                        });
+                    } catch (e) {
+                        debug.error(this.TAG, 'Error setting remote description:', e);
+                    }
                 });
             });
         }).catch(e=>{
@@ -254,12 +264,22 @@ export default class RTCEndpoint extends Event
                             anwser.sdp = ret.sdp;
                             anwser.type = 'answer';
                             debug.log(this.TAG,'answer:',ret.sdp);
-        
-                            this.pc.setRemoteDescription(anwser).then(()=>{
-                                debug.log(this.TAG,'set remote sucess');
-                            }).catch(e=>{
-                                debug.error(this.TAG,e);
-                            });
+
+                            // Guard against race condition: PeerConnection may be closed during HTTP request
+                            if (!this.pc || this.pc.connectionState === 'closed') {
+                                debug.log(this.TAG, 'PeerConnection already closed, skipping setRemoteDescription');
+                                return;
+                            }
+
+                            try {
+                                this.pc.setRemoteDescription(anwser).then(()=>{
+                                    debug.log(this.TAG,'set remote sucess');
+                                }).catch(e=>{
+                                    debug.error(this.TAG,e);
+                                });
+                            } catch (e) {
+                                debug.error(this.TAG, 'Error setting remote description:', e);
+                            }
                         });
                     });
                 }).catch(e=>{
